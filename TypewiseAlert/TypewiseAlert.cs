@@ -6,92 +6,43 @@ namespace TypewiseAlert
 {
     public class TypewiseAlert
     {
-        public enum BreachType
+
+        public static Dictionary<string, Func<double, double, double, bool>> BreachType = new Dictionary<string, Func<double, double, double, bool>>()
         {
-            NORMAL,
-            TOO_LOW,
-            TOO_HIGH
-        };
-        public enum CoolingType
-        {
-            PASSIVE_COOLING,
-            HI_ACTIVE_COOLING,
-            MED_ACTIVE_COOLING
+            {"NORMAL",(value, lowerlimit,upperlimit) => ((value > lowerlimit) && (value<upperlimit))},
+            {"TOO_LOW",(value, lowerlimit,upperlimit) => (value <= lowerlimit) },
+            {"TOO_HIGH",(value, lowerlimit,upperlimit) => ( value >= upperlimit)}
         };
 
-        public static Dictionary<BreachType, Func<double, double, double, bool>> BreachCondition = new Dictionary<BreachType, Func<double, double, double, bool>>()
+        public static Dictionary<string, List<double>> CoolingType = new Dictionary<string, List<double>>()
         {
-            {BreachType.NORMAL,(value, lowerlimit,upperlimit) => ((value > lowerlimit) && (value<upperlimit))},
-            {BreachType.TOO_LOW,(value, lowerlimit,upperlimit) => (value <= lowerlimit) },
-            {BreachType.TOO_HIGH,(value, lowerlimit,upperlimit) => ( value >= upperlimit)}
+            {"PASSIVE_COOLING",new List<double>(){ 0,35 } },
+            {"HI_ACTIVE_COOLING",new List<double>(){0,45 } },
+            {"MED_ACTIVE_COOLING",new List<double>(){0,40 } }
         };
 
-        public static Dictionary<CoolingType, List<double>> CoolingLimits = new Dictionary<CoolingType, List<double>>()
+        public static Dictionary<string, Action<string>> AlertTarget = new Dictionary<string, Action<string>>()
         {
-            {CoolingType.PASSIVE_COOLING,new List<double>(){ 0,35 } },
-            {CoolingType.HI_ACTIVE_COOLING,new List<double>(){0,45 } },
-            {CoolingType.MED_ACTIVE_COOLING,new List<double>(){0,40 } }
+            {"TO_CONTROLLER", (breachType) => Console.WriteLine("0x0feed : {}\n", breachType) },
+            {"TO_EMAIL", (breachType) => { 
+                if(!breachType.Equals("NORMAL")) Console.WriteLine("To: a.b@com \n Hi,The temperature is too {}",breachType); }}
         };
 
-        public static BreachType inferBreach(double value, double lowerLimit, double upperLimit)
+        public static string inferBreach(double value, double lowerLimit, double upperLimit)
         {
-            return (from x in BreachCondition where (x.Value(value, lowerLimit, upperLimit)) select x.Key).ToList()[0];
+            return (from x in BreachType where (x.Value(value, lowerLimit, upperLimit)) select x.Key).ToList()[0];
         }
 
-        public static BreachType classifyTemperatureBreach(
-           CoolingType coolingType, double temperatureInC)
+        public static string classifyTemperatureBreach(
+           string coolingType, double temperatureInC)
         {
-            return inferBreach(temperatureInC, CoolingLimits[coolingType][0], CoolingLimits[coolingType][1]);
+            return inferBreach(temperatureInC, CoolingType[coolingType][0], CoolingType[coolingType][1]);
         }
-        public enum AlertTarget
-        {
-            TO_CONTROLLER,
-            TO_EMAIL
-        };
-        public struct BatteryCharacter
-        {
-            public CoolingType coolingType;
-            public string brand;
-        }
+
         public static void checkAndAlert(
-            AlertTarget alertTarget, BatteryCharacter batteryChar, double temperatureInC)
+            string alertTarget, string coolingType, double temperatureInC)
         {
-
-            BreachType breachType = classifyTemperatureBreach(
-              batteryChar.coolingType, temperatureInC
-            );
-
-            switch (alertTarget)
-            {
-                case AlertTarget.TO_CONTROLLER:
-                    sendToController(breachType);
-                    break;
-                case AlertTarget.TO_EMAIL:
-                    sendToEmail(breachType);
-                    break;
-            }
-        }
-        public static void sendToController(BreachType breachType)
-        {
-            const ushort header = 0xfeed;
-            Console.WriteLine("{} : {}\n", header, breachType);
-        }
-        public static void sendToEmail(BreachType breachType)
-        {
-            string recepient = "a.b@c.com";
-            switch (breachType)
-            {
-                case BreachType.TOO_LOW:
-                    Console.WriteLine("To: {}\n", recepient);
-                    Console.WriteLine("Hi, the temperature is too low\n");
-                    break;
-                case BreachType.TOO_HIGH:
-                    Console.WriteLine("To: {}\n", recepient);
-                    Console.WriteLine("Hi, the temperature is too high\n");
-                    break;
-                case BreachType.NORMAL:
-                    break;
-            }
+            AlertTarget[alertTarget].Invoke(classifyTemperatureBreach(coolingType, temperatureInC));
         }
     }
 }

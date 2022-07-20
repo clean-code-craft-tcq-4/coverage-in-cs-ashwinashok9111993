@@ -9,7 +9,7 @@ namespace TypewiseAlert.Test
     public void InfersBreachAsPerLimits()
     {
       Assert.True(TypewiseAlert.inferBreach(12, 20, 30) ==
-        TypewiseAlert.BreachType.TOO_LOW);
+        "TOO_LOW");
     }
   }
 }
