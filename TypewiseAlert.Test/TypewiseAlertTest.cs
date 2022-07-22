@@ -9,7 +9,15 @@ namespace TypewiseAlert.Test
     public void InfersBreachAsPerLimits()
     {
       Assert.True(TypewiseAlert.inferBreach(12, 20, 30) ==
-        TypewiseAlert.BreachType.TOO_LOW);
+        "TOO_LOW");
     }
-  }
+
+    [Fact]
+    public void InfersBreachAsPerCoolingLimits()
+    {
+        Assert.True(TypewiseAlert.classifyTemperatureBreach("PASSIVE_COOLING", 20) ==
+            "TOO_LOW");
+    }
+
+    }
 }
